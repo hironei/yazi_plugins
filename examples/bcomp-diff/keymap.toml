@@ -1,0 +1,6 @@
+# Add this to %AppData%\yazi\config\keymap.toml.
+
+[[mgr.prepend_keymap]]
+on = [ "g", "D" ]
+run = "plugin bcomp-diff"
+desc = "Diff two selected files"
