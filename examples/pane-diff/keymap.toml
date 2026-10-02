@@ -1,0 +1,6 @@
+# Add this to %AppData%\yazi\config\keymap.toml.
+
+[[mgr.prepend_keymap]]
+on = [ "g", "d" ]
+run = "plugin pane-diff"
+desc = "Compare files in split panes"
