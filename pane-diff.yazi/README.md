@@ -24,6 +24,8 @@ git difftool --tool-help
 
 The plugin is tested against the public APIs available in Yazi 26.8.15 and the current `split-tabs.yazi` implementation. The small selected-entry adapter also accepts the direct URL shape used by older Yazi versions. Yazi APIs may change; retest the plugin after upgrading.
 
+Live verification: installation and execution were confirmed manually on Yazi 26.9.1 on Windows 11 with Git Bash, using Beyond Compare as the Git difftool ([Issue #3](https://github.com/hironei/yazi_plugins/issues/3)). Yazi may show an error with a negative exit code (for example `-13`) when the Diff tool exits; it has no practical effect. Other environments (WSL, Linux, macOS) were not live-verified.
+
 ## Installation
 
 ### 1. Install split-tabs.yazi

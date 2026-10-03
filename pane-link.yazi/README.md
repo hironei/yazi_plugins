@@ -2,6 +2,10 @@
 
 pane-link.yazi is a Yazi plugin that creates a link from a file or folder in the active pane to the other pane's current directory. It does not copy data, so edits made from either pane are visible through the link.
 
+## Live verification
+
+Installation and execution were confirmed manually on Yazi 26.9.1 on Windows 11 with Git Bash ([Issue #3](https://github.com/hironei/yazi_plugins/issues/3)). WSL, Linux, and macOS were not live-verified.
+
 ## Dependencies
 
 | Dependency | Requirement |
