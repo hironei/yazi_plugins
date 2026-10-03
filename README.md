@@ -28,11 +28,24 @@ Then add the keymap shown in each plugin's README (ready-to-copy files are in [`
 
 ## Environment notes
 
-- Tested baseline: Yazi 26.8.15 with the matching `ya` version. `pane-diff` and `bcomp-diff` also keep compatibility with the older direct selected-URL shape (Yazi 26.5.6); `pane-link` requires 26.5.6 or later.
+- Tested baseline: Yazi 26.8.15 with the matching `ya` version (Lua mock tests). `pane-diff` also keeps compatibility with the older direct selected-URL shape (Yazi 26.5.6); `pane-link` requires 26.5.6 or later.
 - `pane-diff` and `pane-link` target Git Bash on Windows, WSL, Linux, or macOS (see each README for details); `bcomp-diff` targets Windows with Beyond Compare in `PATH`.
+- Live verification (Yazi 26.9.1 on Windows 11 with Git Bash; see the table below).
 - Yazi and the tools a plugin launches must run in the same environment.
 - Lua is only needed to run the repository's mock tests, not at runtime.
 - Yazi APIs may change; retest after upgrading.
+
+## Live verification status
+
+Performed manually after PR #2 was merged ([Issue #3](https://github.com/hironei/yazi_plugins/issues/3)), using Yazi 26.9.1 with the matching `ya` on Windows 11 with Git Bash.
+
+| Plugin | `ya pkg add` | Live execution | Notes |
+| --- | --- | --- | --- |
+| `pane-diff` | Verified | Verified | Beyond Compare was launched through Git's difftool. Yazi may report an error with a negative exit code (for example `-13`) when the tool exits; it has no practical effect. |
+| `pane-link` | Verified | Verified | |
+| `bcomp-diff` | Verified | Verified | Earlier versions failed to start Beyond Compare or left a background task; fixed by running Yazi's `shell` command with `orphan = true` ([Issue #4](https://github.com/hironei/yazi_plugins/issues/4)). |
+
+Not covered: other Yazi versions, WSL, Linux, macOS, and other Diff tools.
 
 ## Repository layout
 
