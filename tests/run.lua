@@ -1,6 +1,6 @@
 -- Runs every plugin test in-process. Usage: lua tests/run.lua (from any directory).
 local script_dir = (arg[0] or ""):gsub("\\", "/"):match("^(.*)/[^/]*$") or "."
-local plugins = { "pane-diff", "pane-link", "bcomp-diff" }
+local plugins = { "pane-diff", "pane-link", "bcomp-diff", "zoxide-picker" }
 
 local failed = 0
 for _, name in ipairs(plugins) do
@@ -8,7 +8,7 @@ for _, name in ipairs(plugins) do
 	-- ya/Command/cx mocks, so give it a fresh arg table and clear the globals.
 	local saved_arg = arg
 	arg = { [0] = script_dir .. "/" .. name .. "/test_main.lua" }
-	ya, Command, cx = nil, nil, nil
+	ya, Command, cx, ui, fs, Url = nil, nil, nil, nil, nil, nil
 
 	local ok, err = pcall(dofile, arg[0])
 	arg = saved_arg

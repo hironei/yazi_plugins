@@ -1,0 +1,5 @@
+# Add to Yazi's keymap.toml. This overrides only the default uppercase Z.
+[[mgr.prepend_keymap]]
+on = "Z"
+run = "plugin zoxide-picker"
+desc = "Jump to a visited directory using configured picker"

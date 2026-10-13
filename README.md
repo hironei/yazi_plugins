@@ -9,6 +9,7 @@ A collection of small [Yazi](https://yazi-rs.github.io/) plugins, published from
 | `pane-diff` | Sends one selected or hovered target from each of two `split-tabs.yazi` panes to the external Diff tool configured through Git. | `ya pkg add hironei/yazi_plugins:pane-diff` | [pane-diff.yazi/README.md](pane-diff.yazi/README.md) |
 | `pane-link` | Creates a link to the active pane's file or folder in the other pane's current directory. | `ya pkg add hironei/yazi_plugins:pane-link` | [pane-link.yazi/README.md](pane-link.yazi/README.md) |
 | `bcomp-diff` | Opens exactly two selected files in Beyond Compare (`BComp.exe`). | `ya pkg add hironei/yazi_plugins:bcomp-diff` | [bcomp-diff.yazi/README.md](bcomp-diff.yazi/README.md) |
+| `zoxide-picker` | Jumps through Zoxide history using an executable and argv configured in Yazi's `init.lua`. | `ya pkg add hironei/yazi_plugins:zoxide-picker` | [zoxide-picker.yazi/README.md](zoxide-picker.yazi/README.md) |
 
 `pane-diff` and `pane-link` also require `terrakok/split-tabs.yazi`:
 
@@ -22,6 +23,7 @@ ya pkg add terrakok/split-tabs
 ya pkg add hironei/yazi_plugins:pane-diff
 ya pkg add hironei/yazi_plugins:pane-link
 ya pkg add hironei/yazi_plugins:bcomp-diff
+ya pkg add hironei/yazi_plugins:zoxide-picker
 ```
 
 Then add the keymap shown in each plugin's README (ready-to-copy files are in [`examples/`](examples/)). Update with `ya pkg upgrade`; remove a plugin with `ya pkg delete hironei/yazi_plugins:<package>`.
@@ -29,6 +31,7 @@ Then add the keymap shown in each plugin's README (ready-to-copy files are in [`
 ## Environment notes
 
 - Tested baseline: Yazi 26.8.15 with the matching `ya` version (Lua mock tests). `pane-diff` also keeps compatibility with the older direct selected-URL shape (Yazi 26.5.6); `pane-link` requires 26.5.6 or later.
+- `zoxide-picker` supports Yazi 26.9.1 or later; check with `yazi --version`. It requires a configured picker that accepts ordered UTF-8 paths on stdin and returns one raw path on stdout. On 26.9.1, its first synchronous snapshot uses the then-active tab because entry jobs lack an invoking tab ID; later tab switches do not redirect navigation. See its [README](zoxide-picker.yazi/README.md) for the limitation, sgs/Yuru examples, and protocol details.
 - `pane-diff` and `pane-link` target Git Bash on Windows, WSL, Linux, or macOS (see each README for details); `bcomp-diff` targets Windows with Beyond Compare in `PATH`.
 - Live verification (Yazi 26.9.1 on Windows 11 with Git Bash; see the table below).
 - Yazi and the tools a plugin launches must run in the same environment.
@@ -46,6 +49,8 @@ Performed manually after PR #2 was merged ([Issue #3](https://github.com/hironei
 | `bcomp-diff` | Verified | Verified | Earlier versions failed to start Beyond Compare or left a background task; fixed by running Yazi's `shell` command with `orphan = true` ([Issue #4](https://github.com/hironei/yazi_plugins/issues/4)). |
 
 Not covered: other Yazi versions, WSL, Linux, macOS, and other Diff tools.
+
+`zoxide-picker` has Lua mock verification only; no live installation, sgs/Yuru execution, regular Yazi, WSL, or Yazi Terminal verification is claimed. Users verify their chosen picker's options, ordering, matching, TUI/IME/focus, terminal restoration, and platform paths. Yazi Terminal may be usable with matching native Windows tools, but compatibility is not guaranteed and live verification is not a maintainer implementation gate. Keep the independent `require("zoxide"):setup { update_db = true }` history setup when replacing the `Z` picker.
 
 ## Repository layout
 
@@ -65,6 +70,8 @@ lua tests/run.lua
 ```
 
 The mock tests do not replace live verification in Yazi, `split-tabs.yazi`, external Diff GUIs, or Windows input and focus behavior.
+
+For `zoxide-picker`, see the [requirements](docs/zoxide-picker/requirements.md), [design](docs/zoxide-picker/design.md), and [configuration examples](examples/zoxide-picker/). Only the example uppercase `Z` binding is replaced; unrelated keymaps and Zoxide history collection remain independently configured.
 
 ## Migration from the original repositories
 
