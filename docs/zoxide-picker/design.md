@@ -6,9 +6,9 @@ The required behavior is defined in [requirements.md](requirements.md). The pack
 
 `main.lua` returns a plugin table with `setup` and async `entry`. `setup` validates the executable and dense argv array, copies argv into owned main-context configuration, and clears any previous valid configuration if the new setup is invalid. It returns a boolean and optional error string; invocation reports the stored error. No implicit command is selected.
 
-The async module is loaded separately from the module used by `init.lua`. A `ya.sync` snapshot retrieves setup state and `cx.tab.current.cwd` from Yazi's plugin state. Async entry uses the supplied `job.tab` for its eventual navigation event. The snapshot avoids reading the subsequently active tab and avoids depending on async module-local setup fields.
+The async module is loaded separately from the module used by `init.lua`. A `ya.sync` snapshot retrieves setup state and selects context based on whether `job.tab` exists. For modern jobs it reads `cx.tab.current.cwd` and retains `job.tab`. For legacy jobs it captures `cx.active.current.cwd` and `cx.active.id` together. The selected ID remains in the outer invocation scope for navigation after UI restoration. The snapshot avoids reading the subsequently active tab and avoids depending on async module-local setup fields.
 
-The current [upstream Zoxide plugin](https://github.com/sxyazi/yazi/blob/main/yazi-plugin/preset/plugins/zoxide.lua) uses `cx.tab` and tab-targeted emission; the [entry job definition](https://github.com/sxyazi/yazi/blob/main/yazi-runner/src/entry/job.rs) supplies `job.tab`. The older v26.9.1 preset uses `cx.active` without tab-targeted emission, so this new package explicitly requires the current tab APIs. Existing packages' older baseline claims do not establish compatibility for this package. Missing tab/context support produces an actionable upgrade error before launching a picker.
+The current [upstream Zoxide plugin](https://github.com/sxyazi/yazi/blob/main/yazi-plugin/preset/plugins/zoxide.lua) uses `cx.tab` and tab-targeted emission; the [current entry job definition](https://github.com/sxyazi/yazi/blob/main/yazi-runner/src/entry/job.rs) supplies `job.tab`. In [Yazi v26.9.1 tab context](https://github.com/sxyazi/yazi/blob/v26.9.1/yazi-actor/src/lives/tab.rs), `cx.active` exposes both the directory and tab ID; [context creation](https://github.com/sxyazi/yazi/blob/v26.9.1/yazi-actor/src/context.rs) accepts a tab ID, and [sendable values](https://github.com/sxyazi/yazi/blob/v26.9.1/yazi-shared/src/data/sendable.rs) transfer that ID through sync and events. The exact ID is preserved without string or numeric coercion. Old entry jobs have no invoking identity, so the first synchronous snapshot uses the then-active tab; a later switch cannot redirect the result. If the tab is removed, Yazi handles the emitted event. Missing context or ID fails before querying. The minimum supported release is 26.9.1; users check with `yazi --version`.
 
 ## Process and byte flow
 
@@ -19,7 +19,7 @@ The current [upstream Zoxide plugin](https://github.com/sxyazi/yazi/blob/main/ya
 5. Call `Child:write_all(input)`, then `Child:flush()`. The flush is required because Yazi's child stdin is buffered. `Child:wait_with_output()` closes stdin before waiting and draining stdout, so the picker receives EOF without waiting for Lua garbage collection. See the upstream [Child implementation](https://github.com/sxyazi/yazi/blob/main/yazi-binding/src/process/child.rs).
 6. Inspect status before interpreting stdout. `1`/`130` cancel even if an early exit caused a broken pipe. Any other nonzero/missing/inconsistent status is an error. A successful status with a failed write/flush remains an error, never a partial-input selection.
 7. Remove at most one stdout line terminator. Empty output means no selection; additional lines, NUL/CR, invalid UTF-8, or non-member paths are protocol errors. Check `fs.cha(Url(target), true)` and require a directory, preserving the exact raw supplied path.
-8. Release the permit, then report errors or emit `ya.emit("cd", { target, raw = true, tab = job.tab })`. `raw` prevents shell-like expansion by Yazi and the tab ID preserves the invoking destination.
+8. Release the permit, then report errors or emit `ya.emit("cd", { target, raw = true, tab = target_tab })`. `raw` prevents shell-like expansion by Yazi and the captured tab ID preserves the destination.
 
 Buffering query output permits inspecting query status before presenting any candidates, keeps query failures separate from picker cancellation, and avoids coupling two concurrent child lifetimes. Memory use grows with history size. There is no candidate count limit, subprocess shell, temporary file, runtime cross-package dependency, or arbitrary interaction timeout.
 
@@ -49,7 +49,7 @@ Yazi Terminal hosts ordinary Windows Yazi, so a matching native tool/configurati
 | --- | --- |
 | Implementation and callers | New self-contained package; setup and the example uppercase `Z` binding are its only public entry points. Existing plugin implementations are unchanged. |
 | Types, DTOs, validation, serialization | New validated Lua setup table and newline input/single-path output protocol. No external DTO or persisted format changes. |
-| APIs, routing, permissions, error handling | Current Yazi tab/process APIs, directory metadata checks, and error notifications. No network API, route, or authorization change. |
+| APIs, routing, permissions, error handling | Modern and Yazi 26.9.1 tab context paths, process APIs, directory metadata checks, and error notifications. No network API, route, or authorization change. |
 | Configuration, environment, defaults, migration | Explicit `init.lua` command/argv; no default or migration. Environment is inherited. Zoxide history setup stays separate. |
 | Database, files, caches, persistence | Reads through Zoxide's CLI; no plugin database/cache/file writes. Existing Zoxide's own query/database behavior is retained. |
 | UI, state, events, accessibility | External TUI hide/restore permit and invoking-tab `cd`; actual picker accessibility, layout, keys, IME, and focus require user checks. No responsive web UI. |
@@ -58,7 +58,7 @@ Yazi Terminal hosts ordinary Windows Yazi, so a matching native tool/configurati
 | Scripts, build, packaging, CI/CD | Package layout and Lua test aggregation only; no dependency/build/workflow changes. No configured formatter, linter, or type checker exists in this repository; Lua parsing and whitespace checks complement the mocks. |
 | README, specifications, samples, comments | New package README/license, requirements/design, and init/keymap examples; root README lists the package and states its separate verification boundary. |
 | Security, privacy, input, secrets | Direct argv avoids shell injection; strict output validation. No secrets, personal paths, authentication, or collected data are introduced. |
-| Backward compatibility, data, existing users | Additive opt-in package; no existing keymap/config is edited automatically. Requires current tab APIs; does not inherit older plugin compatibility claims. Existing history collection remains user-managed. |
+| Backward compatibility, data, existing users | Additive opt-in package supporting Yazi 26.9.1 and later; no existing keymap/config is edited automatically. The legacy first snapshot uses the then-active tab. Existing history collection remains user-managed. |
 
 ## Automated verification and remaining checks
 

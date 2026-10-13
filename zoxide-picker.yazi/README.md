@@ -4,7 +4,7 @@ Jump to a directory from Zoxide history with an external picker configured in Ya
 
 ## Requirements and installation
 
-- A Yazi build exposing the current tab-scoped plugin APIs: `cx.tab`, `job.tab`, `ya.emit(..., { tab = ... })`, `ya.sync`, `ui.hide`, and the `Command`/`Child` APIs described below. The current upstream Zoxide plugin uses these tab APIs; this package does not inherit the older packages' Yazi 26.8.15/26.9.1 compatibility claims. An older build without these APIs needs an upgrade.
+- Yazi 26.9.1 or later with `ya.sync`, `ui.hide`, the `Command`/`Child` APIs, and tab-targeted `ya.emit`. Check your installed version with `yazi --version` and use a matching `ya` version. Modern builds provide `job.tab` and `cx.tab`; Yazi 26.9.1 provides `cx.active.current.cwd` and `cx.active.id` for the legacy entry path.
 - Matching `ya` package manager.
 - `zoxide` in the environment inherited by Yazi.
 - A configured external picker that follows the protocol below. Runtime compatibility with any particular binary is the user's responsibility.
@@ -55,10 +55,12 @@ Only the configured executable and argv are used. The plugin adds no picker-spec
 2. If history is empty, it leaves Yazi visible and launches no picker. Otherwise it hides Yazi, starts the configured executable with the configured argv, and supplies the paths on piped stdin as UTF-8 records separated by LF. It flushes the input before `Child:wait_with_output()` closes stdin, delivering EOF.
 3. The picker must preserve input order when filtering (configure its equivalent of `--no-sort` yourself). It must write exactly one supplied raw path to stdout, optionally followed by one LF or CRLF. Spaces, Unicode, native slashes, and drive letters are preserved. Scores, decorations, multiple selections, query echoes, NUL separators, and stdout diagnostics are invalid.
 4. Picker stdout is piped; stderr is inherited so a picker may draw its UI or diagnostics there, or open its controlling terminal. It must accept piped stdin/stdout and obtain interactive input from the terminal. The plugin does not capture picker stderr into its notification.
-5. Status `0` with a nonempty, well-formed supplied path triggers a filesystem check. Only an existing directory (including a resolved directory symlink) is accepted. After restoring Yazi, the plugin emits `cd` with `raw = true` and the invoking `job.tab`, even if another tab became active during the picker.
+5. Status `0` with a nonempty, well-formed supplied path triggers a filesystem check. Only an existing directory (including a resolved directory symlink) is accepted. After restoring Yazi, the plugin emits `cd` with `raw = true` and the captured tab ID, even if another tab became active during the picker.
 6. Status `1` or `130`, or empty successful output, cancels navigation quietly. All other statuses, invalid output, missing tools, launch/read/write failures, and missing directories produce an error notification and no navigation. A directory can still disappear after validation; Yazi handles that final filesystem race.
 
 The newline protocol cannot represent directory names containing embedded LF or CR, and does not support non-UTF-8 paths. Such history is unsupported: LF-containing names may be indistinguishable from multiple records. The invoking directory is rejected if it contains CR/LF. Candidate lists are buffered in memory; there is no plugin-imposed count or byte limit. Extremely large history and external processes that hang are outside the mock verification boundary; no timeout is imposed on user interaction.
+
+On Yazi 26.9.1, an entry job has no invoking tab ID. The first synchronous snapshot therefore uses the then-active tab's directory and ID together. A tab switch after that snapshot cannot redirect the result; if that tab is removed before navigation, Yazi handles the event. If either legacy context value is unavailable, the plugin reports an error before querying Zoxide. Modern jobs with `job.tab` require `cx.tab` and do not fall back to the active tab.
 
 The plugin replaces picker navigation only. Keep `require("zoxide"):setup { update_db = true }` to collect history from directory changes. Unrelated `z`/other keymaps and Zoxide's ranking algorithm remain independently configured.
 
@@ -67,6 +69,7 @@ The plugin replaces picker navigation only. Keep `require("zoxide"):setup { upda
 Use tools and paths from the same environment as Yazi. Windows `yazi.exe` needs Windows executables and Windows history paths, including when launched from Git Bash or Yazi Terminal. WSL Yazi needs Linux executables and Linux history paths. The plugin performs no Windows/WSL path conversion.
 
 - Configuration error: supply one executable and an argv array in `init.lua`, then restart Yazi.
+- Missing tab context: check `yazi --version` (minimum 26.9.1) and the matching `ya` version. The plugin needs both a directory and a tab ID before querying.
 - Cannot query Zoxide: check `zoxide` in Yazi's inherited `PATH` and database access. An unsuccessful query is an error; a successful empty list is a normal empty-history result.
 - Cannot launch the picker: check `setup.command`, installation, executable permissions, and inherited `PATH`. Pass an executable path as one string without shell quotes.
 - Unexpected status or malformed output: check picker-specific flags/defaults and ensure stdout contains only one selected path. Picker diagnostics appear in the terminal while Yazi is hidden.

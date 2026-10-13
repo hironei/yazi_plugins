@@ -43,3 +43,4 @@ luac.out
 # Local agent metadata
 .claude/
 .codex/
+.orca/

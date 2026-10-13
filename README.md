@@ -31,7 +31,7 @@ Then add the keymap shown in each plugin's README (ready-to-copy files are in [`
 ## Environment notes
 
 - Tested baseline: Yazi 26.8.15 with the matching `ya` version (Lua mock tests). `pane-diff` also keeps compatibility with the older direct selected-URL shape (Yazi 26.5.6); `pane-link` requires 26.5.6 or later.
-- `zoxide-picker` requires the current tab-scoped Yazi APIs (`cx.tab`, `job.tab`, and tab-targeted `ya.emit`) and a configured picker that accepts ordered UTF-8 paths on stdin and returns one raw path on stdout. Older baseline claims above apply to the existing plugins. See its [README](zoxide-picker.yazi/README.md) for mutually exclusive sgs/Yuru configuration examples and protocol details.
+- `zoxide-picker` supports Yazi 26.9.1 or later; check with `yazi --version`. It requires a configured picker that accepts ordered UTF-8 paths on stdin and returns one raw path on stdout. On 26.9.1, its first synchronous snapshot uses the then-active tab because entry jobs lack an invoking tab ID; later tab switches do not redirect navigation. See its [README](zoxide-picker.yazi/README.md) for the limitation, sgs/Yuru examples, and protocol details.
 - `pane-diff` and `pane-link` target Git Bash on Windows, WSL, Linux, or macOS (see each README for details); `bcomp-diff` targets Windows with Beyond Compare in `PATH`.
 - Live verification (Yazi 26.9.1 on Windows 11 with Git Bash; see the table below).
 - Yazi and the tools a plugin launches must run in the same environment.

@@ -87,6 +87,7 @@ Command = setmetatable({ NULL = "null", PIPED = "piped", INHERIT = "inherit" }, 
 			if state.spawn_error then return nil, "executable not found" end
 			-- Simulate another tab becoming active while the async picker runs.
 			cx.tab = { current = { cwd = Url("/another/tab") } }
+			cx.active = { id = "another-tab", current = { cwd = Url("/another/legacy/tab") } }
 			event("spawn")
 			local child = {}
 			function child:write_all(input)
@@ -140,7 +141,7 @@ local function reset()
 	owner = assert(loadfile(source))()
 	-- Entry gets a separately loaded module, as in Yazi's async runtime.
 	plugin = assert(loadfile(source))()
-	cx = { tab = { current = { cwd = Url(cwd) } } }
+	cx = { tab = { current = { cwd = Url(cwd) } }, active = { id = "active-tab", current = { cwd = Url("/wrong/active") } } }
 	assert(owner:setup { command = "custom-picker", args = { "--preserve-order", "literal value" } })
 end
 local function run(job)
@@ -386,14 +387,54 @@ test("newline cwd unsupported", function()
 	error_contains("CR/LF")
 	equal(#state.commands, 0)
 end)
-test("missing current API tab", function()
-	plugin:entry({})
-	error_contains("upgrade Yazi")
+for _, job in ipairs { {}, { label = "old job" } } do
+	test("legacy tab snapshot with job fields " .. tostring(job.label), function()
+		local identity = setmetatable({}, { __tostring = function() error("tab ID must not be converted") end })
+		cx.tab = nil
+		cx.active = { id = identity, current = { cwd = Url(cwd) } }
+		plugin:entry(job)
+		equal(state.commands[1].args[4], cwd, "legacy excluded directory")
+		assert(state.emitted[1].args.tab == identity, "saved legacy tab ID")
+	end)
+end
+test("legacy tab snapshot with nil job", function()
+	local identity = {}
+	cx.tab = nil
+	cx.active = { id = identity, current = { cwd = Url(cwd) } }
+	plugin:entry(nil)
+	equal(state.commands[1].args[4], cwd)
+	equal(state.emitted[1].args.tab, identity)
 end)
-test("missing current API context", function()
+test("modern path prefers cx.tab over cx.active", function()
+	run()
+	equal(state.commands[1].args[4], cwd)
+	equal(state.emitted[1].args.tab, invoking_tab)
+end)
+test("legacy missing tab ID", function()
+	cx.tab = nil
+	cx.active = { current = { cwd = Url(cwd) } }
+	plugin:entry({})
+	error_contains("cx.active.id")
+	equal(#state.commands, 0)
+end)
+test("legacy missing context", function()
 	cx = {}
+	plugin:entry({})
+	error_contains("cx.active.id")
+	equal(#state.commands, 0)
+end)
+test("legacy missing directory", function()
+	cx.tab = nil
+	cx.active = { id = {}, current = {} }
+	plugin:entry({})
+	error_contains("cx.active")
+	equal(#state.commands, 0)
+end)
+test("modern missing context does not fall back", function()
+	cx.tab = nil
 	run()
 	error_contains("cx.tab")
+	equal(#state.commands, 0)
 end)
 test("hide exception", function()
 	state.hide_exception = true

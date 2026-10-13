@@ -38,9 +38,16 @@ function M:setup(opts)
 	return self.config ~= nil, self.config_error
 end
 
-local snapshot = ya.sync(function(self)
-	local cwd = cx.tab and cx.tab.current and cx.tab.current.cwd
-	return self.config, self.config_error, cwd and tostring(cwd)
+local snapshot = ya.sync(function(self, has_job_tab)
+	if has_job_tab then
+		local cwd = cx.tab and cx.tab.current and cx.tab.current.cwd
+		return self.config, self.config_error, cwd and tostring(cwd)
+	end
+	-- Older jobs have no tab identity. Capture the active tab's directory and
+	-- ID in one synchronous snapshot before any asynchronous process work.
+	local active = cx.active
+	local cwd = active and active.current and active.current.cwd
+	return self.config, self.config_error, cwd and tostring(cwd), active and active.id
 end)
 
 local function fail(message)
@@ -92,17 +99,21 @@ end
 
 function M:entry(job)
 	local permit, child
+	local target_tab = job and job.tab
 	local phase = "read picker configuration"
 	local ok, target = pcall(function()
-		if not job or job.tab == nil then
-			fail("This plugin requires Yazi's tab-scoped plugin API (job.tab, cx.tab, and tab-targeted ya.emit); upgrade Yazi.")
-		end
-		local config, config_error, cwd = snapshot()
+		local config, config_error, cwd, legacy_tab = snapshot(target_tab ~= nil)
 		if not config then
 			fail(config_error or "Configure require(\"zoxide-picker\"):setup { command = ..., args = {...} } in init.lua; there is no default picker.")
 		end
+		if target_tab == nil then
+			target_tab = legacy_tab
+		end
+		if target_tab == nil then
+			fail("Could not identify the invoking tab; Yazi must expose job.tab or cx.active.id.")
+		end
 		if not cwd or cwd == "" then
-			fail("Could not read the invoking tab's directory; this plugin requires Yazi's cx.tab API.")
+			fail("Could not read the invoking tab's directory from cx.tab or cx.active.")
 		end
 		if cwd:find("[\r\n]") then
 			fail("Directories containing CR/LF cannot be represented by the newline-delimited picker protocol.")
@@ -185,7 +196,7 @@ function M:entry(job)
 		notify("Could not " .. phase .. ": " .. tostring(target))
 	elseif target then
 		local emitted, emit_error = pcall(function()
-			ya.emit("cd", { target, raw = true, tab = job.tab })
+			ya.emit("cd", { target, raw = true, tab = target_tab })
 		end)
 		if not emitted then
 			notify("Could not navigate the invoking tab: " .. tostring(emit_error))
