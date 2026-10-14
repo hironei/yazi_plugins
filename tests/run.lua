@@ -1,6 +1,6 @@
 -- Runs every plugin test in-process. Usage: lua tests/run.lua (from any directory).
 local script_dir = (arg[0] or ""):gsub("\\", "/"):match("^(.*)/[^/]*$") or "."
-local plugins = { "pane-diff", "pane-link", "bcomp-diff", "zoxide-picker" }
+local plugins = { "pane-diff", "pane-link", "bcomp-diff", "zoxide-picker", "file-picker" }
 
 local failed = 0
 for _, name in ipairs(plugins) do

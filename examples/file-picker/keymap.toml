@@ -1,0 +1,6 @@
+# Add to Yazi's keymap.toml to replace the existing lowercase z binding.
+# Keep the uppercase Z binding unchanged.
+[[mgr.prepend_keymap]]
+on = "z"
+run = "plugin file-picker"
+desc = "Reveal a file using configured picker"
